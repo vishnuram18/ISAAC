@@ -13,3 +13,12 @@ Discovery Server: Netflix Eureka (Port 8761) - Service registry.
 Product Service: Java/Spring Boot (Port 8081) - Manages the product catalog and MySQL inventory.
 
 Order Service: Java/Spring Boot (Port 8082) - Processes customer orders and saves them to a dedicated database.
+
+
+[ Next.js Frontend ]  --> [ API Gateway (8080) ]
+                                 |
+        -------------------------------------------------
+        |                                               |
+[ Product Service (8081) ]              [ Order Service (8082) ]
+        |                                               |
+[ MySQL: smartshop_products ]           [ MySQL: smartshop_orders ]
