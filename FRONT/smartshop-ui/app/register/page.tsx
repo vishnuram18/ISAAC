@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { registerUser } from "../../services/api";
+import { register } from "../../services/api";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -18,7 +18,7 @@ export default function RegisterPage() {
     setError("");
     setLoading(true);
     try {
-      await registerUser(username, email, password);
+      await register(username, password, email);
       router.push("/login");
     } catch {
       setError("Registration failed. Username or email may already be taken.");

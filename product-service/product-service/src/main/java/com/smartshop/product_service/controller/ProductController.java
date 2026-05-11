@@ -1,8 +1,9 @@
 package com.smartshop.product_service.controller;
 
 import com.smartshop.product_service.model.Product;
-import com.smartshop.product_service.repository.ProductRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.smartshop.product_service.service.ProductService;
+import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -11,26 +12,31 @@ import java.util.List;
 @RequestMapping("/api/products")
 public class ProductController {
 
-    @Autowired
-    private ProductRepository productRepository;
+    private final ProductService productService;
 
-    // Create a new product
+    public ProductController(ProductService productService) {
+        this.productService = productService;
+    }
+
     @PostMapping("/add")
-    public Product addProduct(@RequestBody Product product) {
-        return productRepository.save(product);
+    public ResponseEntity<Product> addProduct(@Valid @RequestBody Product product) {
+        return ResponseEntity.status(201).body(productService.addProduct(product));
     }
 
-    // Get all products
     @GetMapping("/all")
-    public List<Product> getAllProducts() {
-        return productRepository.findAll();
+    public ResponseEntity<List<Product>> getAllProducts() {
+        return ResponseEntity.ok(productService.getAllProducts());
     }
 
-
-    // Get a single product by ID (Needed by Order Service!)
     @GetMapping("/{id}")
-    public Product getProductById(@PathVariable Long id) {
-        return productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+    public ResponseEntity<Product> getProductById(@PathVariable Long id) {
+        return ResponseEntity.ok(productService.getProductById(id));
+    }
+
+    // Internal endpoint called by order-service via Feign (not exposed through gateway externally)
+    @PutMapping("/{id}/reduce-stock")
+    public ResponseEntity<Void> reduceStock(@PathVariable Long id, @RequestParam int quantity) {
+        productService.reduceStock(id, quantity);
+        return ResponseEntity.noContent().build();
     }
 }

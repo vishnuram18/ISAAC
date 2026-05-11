@@ -9,15 +9,12 @@ export default function HeaderAuth() {
   const [username, setUsername] = useState<string | null>(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem("user");
-    if (stored) {
-      const user = JSON.parse(stored);
-      setUsername(user.username);
-    }
+    setUsername(localStorage.getItem("username"));
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    localStorage.removeItem("username");
     router.push("/login");
   };
 

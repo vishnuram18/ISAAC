@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { loginUser } from "../../services/api";
+import { login } from "../../services/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -17,11 +17,13 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const user = await loginUser(username, password);
-      localStorage.setItem("user", JSON.stringify(user));
+      const data = await login(username, password);
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("username", data.username);
       router.push("/");
-    } catch (err: any) {
-      if (err.message === "Invalid credentials") {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "";
+      if (msg.toLowerCase().includes("invalid") || msg.toLowerCase().includes("unauthorized")) {
         setError("Incorrect username/email or password.");
       } else {
         setError("Could not reach the server. Is the backend running?");
