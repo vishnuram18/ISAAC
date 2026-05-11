@@ -3,11 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { login } from "../../services/api";
+import { register } from "../../services/api";
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const router = useRouter();
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -17,17 +18,10 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const data = await login(username, password);
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("username", data.username);
-      router.push("/");
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "";
-      if (msg.toLowerCase().includes("invalid") || msg.toLowerCase().includes("unauthorized")) {
-        setError("Incorrect username/email or password.");
-      } else {
-        setError("Could not reach the server. Is the backend running?");
-      }
+      await register(username, password, email);
+      router.push("/login");
+    } catch {
+      setError("Registration failed. Username or email may already be taken.");
     } finally {
       setLoading(false);
     }
@@ -40,7 +34,7 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="username">
-              Username or Email
+              Username
             </label>
             <input
               id="username"
@@ -49,7 +43,21 @@ export default function LoginPage() {
               onChange={(e) => setUsername(e.target.value)}
               required
               className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="your_username or you@example.com"
+              placeholder="your_username"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="email">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              placeholder="you@example.com"
             />
           </div>
           <div>
@@ -72,13 +80,13 @@ export default function LoginPage() {
             disabled={loading}
             className="bg-blue-600 text-white py-2 rounded-full hover:bg-blue-700 transition font-semibold mt-2 disabled:opacity-60"
           >
-            {loading ? "Logging in…" : "Login"}
+            {loading ? "Creating account…" : "Register"}
           </button>
         </form>
         <p className="text-center text-sm text-gray-500 mt-6">
-          Don&apos;t have an account?{" "}
-          <Link href="/register" className="text-blue-600 hover:underline">
-            Register
+          Already have an account?{" "}
+          <Link href="/login" className="text-blue-600 hover:underline">
+            Login
           </Link>
         </p>
       </div>

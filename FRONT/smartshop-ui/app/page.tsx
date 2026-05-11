@@ -1,7 +1,7 @@
 import { fetchProducts } from "../services/api";
 import { Product } from "../types";
 import AddToCartButton from "../components/AddToCartButton";
-import Link from "next/link";
+import HeaderAuth from "../components/HeaderAuth";
 
 export default async function Home() {
   const products: Product[] = await fetchProducts();
@@ -10,12 +10,7 @@ export default async function Home() {
     <div className="max-w-6xl mx-auto p-8">
       <header className="flex justify-between items-center mb-10 border-b pb-5">
         <h1 className="text-3xl font-extrabold text-blue-600">Isaac SmartShop</h1>
-        <Link
-          href="/login"
-          className="bg-blue-600 text-white px-6 py-2 rounded-full hover:bg-blue-700 transition"
-        >
-          Login
-        </Link>
+        <HeaderAuth />
       </header>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">

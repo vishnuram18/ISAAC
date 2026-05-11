@@ -18,15 +18,6 @@ export const fetchProducts = async () => {
   return handleResponse(res);
 };
 
-export const placeOrder = async (orderData: { productId: number; quantity: number }) => {
-  const res = await fetch(`${GATEWAY_URL}/orders/place`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...getAuthHeader() },
-    body: JSON.stringify(orderData),
-  });
-  return handleResponse(res);
-};
-
 export const login = async (username: string, password: string) => {
   const res = await fetch(`${GATEWAY_URL}/users/login`, {
     method: "POST",
@@ -41,6 +32,15 @@ export const register = async (username: string, password: string, email: string
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password, email }),
+  });
+  return handleResponse(res);
+};
+
+export const placeOrder = async (orderData: { productId: number; quantity: number }) => {
+  const res = await fetch(`${GATEWAY_URL}/orders/place`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeader() },
+    body: JSON.stringify(orderData),
   });
   return handleResponse(res);
 };
