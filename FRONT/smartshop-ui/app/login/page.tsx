@@ -20,8 +20,12 @@ export default function LoginPage() {
       const user = await loginUser(username, password);
       localStorage.setItem("user", JSON.stringify(user));
       router.push("/");
-    } catch {
-      setError("Invalid username or password.");
+    } catch (err: any) {
+      if (err.message === "Invalid credentials") {
+        setError("Incorrect username/email or password.");
+      } else {
+        setError("Could not reach the server. Is the backend running?");
+      }
     } finally {
       setLoading(false);
     }
@@ -34,7 +38,7 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="username">
-              Username
+              Username or Email
             </label>
             <input
               id="username"
@@ -43,7 +47,7 @@ export default function LoginPage() {
               onChange={(e) => setUsername(e.target.value)}
               required
               className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="your_username"
+              placeholder="your_username or you@example.com"
             />
           </div>
           <div>

@@ -30,10 +30,12 @@ public class UserController {
 
     @PostMapping("/login")
     public ResponseEntity<?> loginUser(@RequestBody Map<String, String> credentials) {
-        String username = credentials.get("username");
+        String identifier = credentials.get("username");
         String password = credentials.get("password");
 
-        Optional<User> userOpt = userRepository.findByUsername(username);
+        Optional<User> userOpt = userRepository.findByUsername(identifier)
+                .or(() -> userRepository.findByEmail(identifier));
+
         if (userOpt.isPresent() && userOpt.get().getPassword().equals(password)) {
             return ResponseEntity.ok(userOpt.get());
         }
