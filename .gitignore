@@ -29,3 +29,6 @@ yarn-debug.log*
 *.log
 *.sql
 temp/
+
+# --- Codespaces / local run logs ---
+.logs/
