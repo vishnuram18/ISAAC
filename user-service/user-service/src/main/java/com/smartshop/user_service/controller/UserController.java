@@ -6,6 +6,7 @@ import com.smartshop.user_service.model.User;
 import com.smartshop.user_service.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,6 +29,16 @@ public class UserController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(userService.login(request));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<User> getProfile(Authentication auth) {
+        return ResponseEntity.ok(userService.getByUsername(auth.getName()));
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<User> updateProfile(Authentication auth, @RequestBody User updates) {
+        return ResponseEntity.ok(userService.updateProfile(auth.getName(), updates));
     }
 
     @GetMapping("/all")

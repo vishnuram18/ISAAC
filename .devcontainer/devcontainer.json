@@ -1,0 +1,44 @@
+{
+  "name": "ISAAC SmartShop",
+  "image": "mcr.microsoft.com/devcontainers/java:21",
+
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    },
+    "ghcr.io/devcontainers/features/mysql:1": {
+      "rootPassword": "180618",
+      "defaultCharset": "utf8mb4",
+      "defaultCollation": "utf8mb4_unicode_ci"
+    }
+  },
+
+  "forwardPorts": [3000, 8080, 8081, 8082, 8083, 8761],
+
+  "portsAttributes": {
+    "3000": { "label": "Frontend (Next.js)", "onAutoForward": "openBrowser" },
+    "8080": { "label": "API Gateway" },
+    "8081": { "label": "User Service" },
+    "8082": { "label": "Product Service" },
+    "8083": { "label": "Order Service" },
+    "8761": { "label": "Eureka Dashboard" }
+  },
+
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack",
+        "vmware.vscode-spring-boot",
+        "bradlc.vscode-tailwindcss",
+        "esbenp.prettier-vscode",
+        "ms-vscode.vscode-typescript-next"
+      ],
+      "settings": {
+        "java.configuration.updateBuildConfiguration": "automatic",
+        "editor.formatOnSave": true
+      }
+    }
+  }
+}

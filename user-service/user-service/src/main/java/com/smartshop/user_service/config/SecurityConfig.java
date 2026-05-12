@@ -30,6 +30,7 @@ public class SecurityConfig {
                 .addFilterBefore(new JwtAuthFilter(jwtUtil), UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/users/register", "/api/users/login").permitAll()
+                        .requestMatchers("/api/users/all").hasAuthority("ROLE_ADMIN")
                         .anyRequest().authenticated()
                 );
         return http.build();

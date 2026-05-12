@@ -27,5 +27,12 @@ yarn-debug.log*
 
 # --- Database / Temp ---
 *.log
-*.sql
 temp/
+# Ignore loose SQL dumps but not the Docker init script
+!docker/init.sql
+
+# --- Codespaces / local run logs ---
+.logs/
+
+# --- Docker ---
+docker-compose.override.yml

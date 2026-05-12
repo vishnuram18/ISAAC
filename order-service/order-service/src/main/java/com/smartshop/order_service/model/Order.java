@@ -17,6 +17,8 @@ public class Order {
 
     private Long userId;
 
+    private String username;
+
     @NotNull(message = "Product ID is required")
     private Long productId;
 

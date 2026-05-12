@@ -7,6 +7,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.Map;
@@ -27,6 +28,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleFeign(FeignException ex) {
         int status = ex.status() > 0 ? ex.status() : 502;
         return ResponseEntity.status(status).body(errorBody(status, "Upstream service error: " + ex.getMessage()));
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Map<String, Object>> handleResponseStatus(ResponseStatusException ex) {
+        int status = ex.getStatusCode().value();
+        return ResponseEntity.status(status).body(errorBody(status, ex.getReason()));
     }
 
     private Map<String, Object> errorBody(int status, String message) {

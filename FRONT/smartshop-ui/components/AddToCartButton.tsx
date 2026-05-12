@@ -1,50 +1,49 @@
 "use client";
 import { useState } from "react";
-import { placeOrder } from "../services/api";
+import { useCart } from "../context/CartContext";
+import { Product } from "../types";
 
-type Status = "idle" | "loading" | "success" | "error";
+export default function AddToCartButton({ product }: { product: Product }) {
+  const { addItem } = useCart();
+  const [quantity, setQuantity] = useState(1);
+  const [added, setAdded] = useState(false);
 
-export default function AddToCartButton({ productId }: { productId: number }) {
-  const [status, setStatus] = useState<Status>("idle");
-  const [message, setMessage] = useState("");
-
-  const handleOrder = async () => {
-    setStatus("loading");
-    setMessage("");
-    try {
-      await placeOrder({ productId, quantity: 1 });
-      setStatus("success");
-      setMessage("Ordered!");
-      setTimeout(() => setStatus("idle"), 3000);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Something went wrong";
-      setStatus("error");
-      setMessage(msg);
-      setTimeout(() => setStatus("idle"), 4000);
-    }
+  const handleAdd = () => {
+    addItem(product, quantity);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 2000);
   };
 
-  const colorClass =
-    status === "success"
-      ? "bg-green-500"
-      : status === "error"
-      ? "bg-red-500"
-      : "bg-orange-500 hover:bg-orange-600";
-
   return (
-    <div className="flex flex-col items-end gap-1">
+    <div className="flex flex-col items-end gap-2">
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+          className="w-7 h-7 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-100 font-bold text-sm"
+        >
+          −
+        </button>
+        <span className="w-6 text-center font-semibold text-sm">{quantity}</span>
+        <button
+          onClick={() => setQuantity((q) => Math.min(product.stockQuantity, q + 1))}
+          className="w-7 h-7 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-100 font-bold text-sm"
+        >
+          +
+        </button>
+      </div>
       <button
-        onClick={handleOrder}
-        disabled={status === "loading"}
-        className={`${colorClass} text-white px-4 py-2 rounded-lg font-medium transition disabled:opacity-50`}
+        onClick={handleAdd}
+        disabled={product.stockQuantity === 0}
+        className={`px-4 py-2 rounded-lg font-medium transition text-white text-sm ${
+          added
+            ? "bg-green-500"
+            : product.stockQuantity === 0
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-orange-500 hover:bg-orange-600"
+        }`}
       >
-        {status === "loading" ? "Ordering..." : status === "success" ? "Ordered!" : "Add to Cart"}
+        {product.stockQuantity === 0 ? "Out of Stock" : added ? "Added!" : "Add to Cart"}
       </button>
-      {message && (
-        <span className={`text-xs ${status === "success" ? "text-green-600" : "text-red-500"}`}>
-          {message}
-        </span>
-      )}
     </div>
   );
 }

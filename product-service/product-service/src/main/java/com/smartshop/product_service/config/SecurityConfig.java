@@ -24,8 +24,6 @@ public class SecurityConfig {
                 .addFilterBefore(new JwtAuthFilter(jwtUtil), UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
-                        // reduce-stock is internal (called by order-service via Feign, not browser)
-                        .requestMatchers(HttpMethod.PUT, "/api/products/*/reduce-stock").permitAll()
                         .anyRequest().authenticated()
                 );
         return http.build();
