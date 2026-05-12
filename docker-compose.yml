@@ -165,6 +165,8 @@ services:
     container_name: smartshop-frontend
     ports:
       - "3000:3000"
+    environment:
+      GATEWAY_INTERNAL_URL: http://api-gateway:8080/api
     depends_on:
       api-gateway:
         condition: service_healthy

@@ -1,4 +1,7 @@
-const GATEWAY_URL = process.env.NEXT_PUBLIC_GATEWAY_URL ?? "http://localhost:8080/api";
+const isServer = typeof window === "undefined";
+const GATEWAY_URL = isServer
+  ? (process.env.GATEWAY_INTERNAL_URL ?? "http://api-gateway:8080/api")
+  : (process.env.NEXT_PUBLIC_GATEWAY_URL ?? "http://localhost:8080/api");
 
 function getAuthHeader(): Record<string, string> {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
