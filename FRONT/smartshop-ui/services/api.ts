@@ -18,6 +18,16 @@ export const fetchProducts = async () => {
   return handleResponse(res);
 };
 
+export const searchProducts = async (query: string) => {
+  const res = await fetch(`${GATEWAY_URL}/products/search?q=${encodeURIComponent(query)}`);
+  return handleResponse(res);
+};
+
+export const fetchProductById = async (id: number) => {
+  const res = await fetch(`${GATEWAY_URL}/products/${id}`);
+  return handleResponse(res);
+};
+
 export const login = async (username: string, password: string) => {
   const res = await fetch(`${GATEWAY_URL}/users/login`, {
     method: "POST",
@@ -36,11 +46,34 @@ export const register = async (username: string, password: string, email: string
   return handleResponse(res);
 };
 
+export const fetchUserProfile = async () => {
+  const res = await fetch(`${GATEWAY_URL}/users/me`, {
+    headers: { "Content-Type": "application/json", ...getAuthHeader() },
+  });
+  return handleResponse(res);
+};
+
+export const updateUserProfile = async (data: { email?: string; password?: string }) => {
+  const res = await fetch(`${GATEWAY_URL}/users/me`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...getAuthHeader() },
+    body: JSON.stringify(data),
+  });
+  return handleResponse(res);
+};
+
 export const placeOrder = async (orderData: { productId: number; quantity: number }) => {
   const res = await fetch(`${GATEWAY_URL}/orders/place`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...getAuthHeader() },
     body: JSON.stringify(orderData),
+  });
+  return handleResponse(res);
+};
+
+export const fetchMyOrders = async () => {
+  const res = await fetch(`${GATEWAY_URL}/orders/my`, {
+    headers: { "Content-Type": "application/json", ...getAuthHeader() },
   });
   return handleResponse(res);
 };

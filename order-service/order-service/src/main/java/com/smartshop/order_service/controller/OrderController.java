@@ -4,7 +4,10 @@ import com.smartshop.order_service.model.Order;
 import com.smartshop.order_service.service.OrderService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -17,7 +20,18 @@ public class OrderController {
     }
 
     @PostMapping("/place")
-    public ResponseEntity<Order> placeOrder(@Valid @RequestBody Order order) {
+    public ResponseEntity<Order> placeOrder(@Valid @RequestBody Order order, Authentication auth) {
+        order.setUsername(auth.getName());
         return ResponseEntity.status(201).body(orderService.placeOrder(order));
+    }
+
+    @GetMapping("/my")
+    public ResponseEntity<List<Order>> getMyOrders(Authentication auth) {
+        return ResponseEntity.ok(orderService.getOrdersByUsername(auth.getName()));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Order> getOrderById(@PathVariable Long id, Authentication auth) {
+        return ResponseEntity.ok(orderService.getOrderById(id, auth.getName()));
     }
 }
