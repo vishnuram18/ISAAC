@@ -29,4 +29,9 @@ public class Product {
     @NotNull(message = "Stock quantity is required")
     @Min(value = 0, message = "Stock cannot be negative")
     private Integer stockQuantity;
+
+    private String imageUrl;
+
+    @Column
+    private String sellerUsername;
 }

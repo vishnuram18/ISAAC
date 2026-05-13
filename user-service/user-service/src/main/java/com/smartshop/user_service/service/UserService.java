@@ -41,8 +41,24 @@ public class UserService {
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             throw new IllegalArgumentException("Invalid username or password");
         }
-        String token = jwtUtil.generateToken(user.getUsername());
+        String token = jwtUtil.generateToken(user.getUsername(), user.getRole());
         return new LoginResponse(token, user.getUsername(), user.getRole());
+    }
+
+    public User getByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    }
+
+    public User updateProfile(String username, User updates) {
+        User user = getByUsername(username);
+        if (updates.getEmail() != null && !updates.getEmail().isBlank()) {
+            user.setEmail(updates.getEmail());
+        }
+        if (updates.getPassword() != null && !updates.getPassword().isBlank()) {
+            user.setPassword(passwordEncoder.encode(updates.getPassword()));
+        }
+        return userRepository.save(user);
     }
 
     public List<User> getAllUsers() {

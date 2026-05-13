@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Service
 public class OrderService {
@@ -35,5 +36,42 @@ public class OrderService {
         Order saved = orderRepository.save(order);
         productClient.reduceStock(order.getProductId(), order.getQuantity());
         return saved;
+    }
+
+    public Order cancelOrder(Long id, String username) {
+        Order order = getOrderById(id, username);
+        if (!"PLACED".equals(order.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Only orders with status PLACED can be cancelled");
+        }
+        order.setStatus("CANCELLED");
+        orderRepository.save(order);
+        productClient.restoreStock(order.getProductId(), order.getQuantity());
+        return order;
+    }
+
+    public Order returnOrder(Long id, String username) {
+        Order order = getOrderById(id, username);
+        if (!"DELIVERED".equals(order.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Only orders with status DELIVERED can be returned");
+        }
+        order.setStatus("RETURNED");
+        orderRepository.save(order);
+        productClient.restoreStock(order.getProductId(), order.getQuantity());
+        return order;
+    }
+
+    public List<Order> getOrdersByUsername(String username) {
+        return orderRepository.findByUsernameOrderByIdDesc(username);
+    }
+
+    public Order getOrderById(Long id, String username) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
+        if (!order.getUsername().equals(username)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+        }
+        return order;
     }
 }

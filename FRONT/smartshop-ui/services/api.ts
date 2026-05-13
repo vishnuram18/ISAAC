@@ -1,4 +1,7 @@
-const GATEWAY_URL = process.env.NEXT_PUBLIC_GATEWAY_URL ?? "http://localhost:8080/api";
+const isServer = typeof window === "undefined";
+const GATEWAY_URL = isServer
+  ? (process.env.GATEWAY_INTERNAL_URL ?? "http://api-gateway:8080/api")
+  : (process.env.NEXT_PUBLIC_GATEWAY_URL ?? "http://localhost:8080/api");
 
 function getAuthHeader(): Record<string, string> {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
@@ -18,6 +21,16 @@ export const fetchProducts = async () => {
   return handleResponse(res);
 };
 
+export const searchProducts = async (query: string) => {
+  const res = await fetch(`${GATEWAY_URL}/products/search?q=${encodeURIComponent(query)}`);
+  return handleResponse(res);
+};
+
+export const fetchProductById = async (id: number) => {
+  const res = await fetch(`${GATEWAY_URL}/products/${id}`);
+  return handleResponse(res);
+};
+
 export const login = async (username: string, password: string) => {
   const res = await fetch(`${GATEWAY_URL}/users/login`, {
     method: "POST",
@@ -27,11 +40,27 @@ export const login = async (username: string, password: string) => {
   return handleResponse(res);
 };
 
-export const register = async (username: string, password: string, email: string) => {
+export const register = async (username: string, password: string, email: string, role: string = "USER") => {
   const res = await fetch(`${GATEWAY_URL}/users/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password, email }),
+    body: JSON.stringify({ username, password, email, role }),
+  });
+  return handleResponse(res);
+};
+
+export const fetchUserProfile = async () => {
+  const res = await fetch(`${GATEWAY_URL}/users/me`, {
+    headers: { "Content-Type": "application/json", ...getAuthHeader() },
+  });
+  return handleResponse(res);
+};
+
+export const updateUserProfile = async (data: { email?: string; password?: string }) => {
+  const res = await fetch(`${GATEWAY_URL}/users/me`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...getAuthHeader() },
+    body: JSON.stringify(data),
   });
   return handleResponse(res);
 };
@@ -43,4 +72,72 @@ export const placeOrder = async (orderData: { productId: number; quantity: numbe
     body: JSON.stringify(orderData),
   });
   return handleResponse(res);
+};
+
+export const fetchMyOrders = async () => {
+  const res = await fetch(`${GATEWAY_URL}/orders/my`, {
+    headers: { "Content-Type": "application/json", ...getAuthHeader() },
+  });
+  return handleResponse(res);
+};
+
+export const cancelOrder = async (id: number) => {
+  const res = await fetch(`${GATEWAY_URL}/orders/${id}/cancel`, {
+    method: "PUT",
+    headers: { ...getAuthHeader() },
+  });
+  return handleResponse(res);
+};
+
+export const returnOrder = async (id: number) => {
+  const res = await fetch(`${GATEWAY_URL}/orders/${id}/return`, {
+    method: "PUT",
+    headers: { ...getAuthHeader() },
+  });
+  return handleResponse(res);
+};
+
+export const fetchMyProducts = async () => {
+  const res = await fetch(`${GATEWAY_URL}/products/my`, {
+    headers: { "Content-Type": "application/json", ...getAuthHeader() },
+  });
+  return handleResponse(res);
+};
+
+export const addProduct = async (product: {
+  name: string;
+  description: string;
+  price: number;
+  stockQuantity: number;
+  imageUrl?: string;
+}) => {
+  const res = await fetch(`${GATEWAY_URL}/products/add`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeader() },
+    body: JSON.stringify(product),
+  });
+  return handleResponse(res);
+};
+
+export const updateProduct = async (
+  id: number,
+  product: { name: string; description: string; price: number; stockQuantity: number; imageUrl?: string }
+) => {
+  const res = await fetch(`${GATEWAY_URL}/products/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...getAuthHeader() },
+    body: JSON.stringify(product),
+  });
+  return handleResponse(res);
+};
+
+export const deleteProduct = async (id: number) => {
+  const res = await fetch(`${GATEWAY_URL}/products/${id}`, {
+    method: "DELETE",
+    headers: { ...getAuthHeader() },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: res.statusText }));
+    throw new Error(err.message ?? res.statusText);
+  }
 };

@@ -1,50 +1,54 @@
 "use client";
 import { useState } from "react";
-import { placeOrder } from "../services/api";
+import { useCart } from "../context/CartContext";
+import { Product } from "../types";
 
-type Status = "idle" | "loading" | "success" | "error";
+export default function AddToCartButton({ product }: { product: Product }) {
+  const { addItem } = useCart();
+  const [quantity, setQuantity] = useState(1);
+  const [added, setAdded] = useState(false);
 
-export default function AddToCartButton({ productId }: { productId: number }) {
-  const [status, setStatus] = useState<Status>("idle");
-  const [message, setMessage] = useState("");
-
-  const handleOrder = async () => {
-    setStatus("loading");
-    setMessage("");
-    try {
-      await placeOrder({ productId, quantity: 1 });
-      setStatus("success");
-      setMessage("Ordered!");
-      setTimeout(() => setStatus("idle"), 3000);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Something went wrong";
-      setStatus("error");
-      setMessage(msg);
-      setTimeout(() => setStatus("idle"), 4000);
-    }
+  const handleAdd = () => {
+    addItem(product, quantity);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 2000);
   };
 
-  const colorClass =
-    status === "success"
-      ? "bg-green-500"
-      : status === "error"
-      ? "bg-red-500"
-      : "bg-orange-500 hover:bg-orange-600";
+  if (product.stockQuantity === 0) {
+    return (
+      <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-700/50 text-slate-500 border border-slate-600/30">
+        Sold Out
+      </span>
+    );
+  }
 
   return (
-    <div className="flex flex-col items-end gap-1">
+    <div className="flex flex-col items-end gap-2">
+      <div className="flex items-center gap-1.5">
+        <button
+          onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+          className="w-6 h-6 rounded-full bg-white/8 hover:bg-white/15 text-white font-bold text-xs transition flex items-center justify-center"
+        >
+          −
+        </button>
+        <span className="w-5 text-center font-semibold text-white text-sm">{quantity}</span>
+        <button
+          onClick={() => setQuantity((q) => Math.min(product.stockQuantity, q + 1))}
+          className="w-6 h-6 rounded-full bg-white/8 hover:bg-white/15 text-white font-bold text-xs transition flex items-center justify-center"
+        >
+          +
+        </button>
+      </div>
       <button
-        onClick={handleOrder}
-        disabled={status === "loading"}
-        className={`${colorClass} text-white px-4 py-2 rounded-lg font-medium transition disabled:opacity-50`}
+        onClick={handleAdd}
+        className={`px-3 py-1.5 rounded-full font-semibold text-xs text-white transition-all ${
+          added
+            ? "bg-emerald-500 shadow-lg shadow-emerald-500/30"
+            : "bg-gradient-to-r from-orange-500 to-red-500 hover:opacity-90 hover:shadow-lg hover:shadow-orange-500/25"
+        }`}
       >
-        {status === "loading" ? "Ordering..." : status === "success" ? "Ordered!" : "Add to Cart"}
+        {added ? "✓ Added" : "Add to Cart"}
       </button>
-      {message && (
-        <span className={`text-xs ${status === "success" ? "text-green-600" : "text-red-500"}`}>
-          {message}
-        </span>
-      )}
     </div>
   );
 }
