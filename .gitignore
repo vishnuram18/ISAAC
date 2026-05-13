@@ -1,3 +1,6 @@
+# --- Claude Code ---
+.claude/
+
 # --- System / IDE Files ---
 .idea/
 .vscode/
