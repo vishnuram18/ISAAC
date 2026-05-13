@@ -5,6 +5,7 @@ export interface Product {
   price: number;
   stockQuantity: number;
   imageUrl?: string;
+  sellerUsername?: string;
 }
 
 export interface Order {

@@ -34,4 +34,14 @@ public class OrderController {
     public ResponseEntity<Order> getOrderById(@PathVariable Long id, Authentication auth) {
         return ResponseEntity.ok(orderService.getOrderById(id, auth.getName()));
     }
+
+    @PutMapping("/{id}/cancel")
+    public ResponseEntity<Order> cancelOrder(@PathVariable Long id, Authentication auth) {
+        return ResponseEntity.ok(orderService.cancelOrder(id, auth.getName()));
+    }
+
+    @PutMapping("/{id}/return")
+    public ResponseEntity<Order> returnOrder(@PathVariable Long id, Authentication auth) {
+        return ResponseEntity.ok(orderService.returnOrder(id, auth.getName()));
+    }
 }

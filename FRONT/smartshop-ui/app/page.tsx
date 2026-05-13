@@ -1,7 +1,6 @@
-import { fetchProducts } from "../services/api";
+import { fetchProducts, searchProducts } from "../services/api";
 import { Product } from "../types";
 import AddToCartButton from "../components/AddToCartButton";
-import HeaderAuth from "../components/HeaderAuth";
 import SearchBar from "../components/SearchBar";
 
 export default async function Home({
@@ -10,56 +9,81 @@ export default async function Home({
   searchParams: Promise<{ q?: string }>;
 }) {
   const { q } = await searchParams;
-  const products: Product[] = await (
-    q
-      ? fetch(
-          `${process.env.NEXT_PUBLIC_GATEWAY_URL ?? "http://localhost:8080/api"}/products/search?q=${encodeURIComponent(q)}`,
-          { cache: "no-store" }
-        ).then((r) => r.json())
-      : fetchProducts()
-  );
+  const products: Product[] = await (q ? searchProducts(q) : fetchProducts());
 
   return (
-    <div className="max-w-6xl mx-auto p-8">
-      <header className="flex justify-between items-center mb-6 border-b pb-5">
-        <h1 className="text-3xl font-extrabold text-blue-600">Isaac SmartShop</h1>
-        <HeaderAuth />
-      </header>
+    <div className="max-w-7xl mx-auto px-6 py-10">
 
-      <div className="mb-8">
-        <SearchBar initialQuery={q ?? ""} />
+      {/* Hero search section */}
+      <div className="text-center mb-12">
+        <h1 className="text-4xl sm:text-5xl font-extrabold text-white mb-3 tracking-tight">
+          Discover <span className="grad-text">Amazing Products</span>
+        </h1>
+        <p className="text-slate-400 text-lg mb-8">Shop the best deals from verified sellers</p>
+        <div className="flex justify-center">
+          <SearchBar initialQuery={q ?? ""} />
+        </div>
+        {q && (
+          <p className="text-slate-400 text-sm mt-4">
+            {products.length} result{products.length !== 1 ? "s" : ""} for &ldquo;<span className="text-white font-medium">{q}</span>&rdquo;
+          </p>
+        )}
       </div>
 
-      {q && (
-        <p className="text-sm text-gray-500 mb-4">
-          {products.length} result{products.length !== 1 ? "s" : ""} for &ldquo;{q}&rdquo;
-        </p>
-      )}
-
+      {/* Empty state */}
       {products.length === 0 && (
-        <div className="text-center py-16 text-gray-400">
-          <p className="text-lg">No products found.</p>
+        <div className="text-center py-24">
+          <p className="text-6xl mb-4">🔍</p>
+          <p className="text-xl font-semibold text-white">No products found</p>
+          <p className="text-slate-400 mt-2">Try a different search term</p>
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+      {/* Product grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {products.map((p) => (
-          <div key={p.id} className="border rounded-2xl p-5 shadow-sm hover:shadow-xl transition-shadow bg-white">
-            <div className="h-40 bg-gray-100 rounded-xl mb-4 overflow-hidden flex items-center justify-center">
+          <div
+            key={p.id}
+            className="glass group flex flex-col overflow-hidden hover:border-white/20 hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-1 transition-all duration-300"
+          >
+            {/* Image */}
+            <div className="h-44 overflow-hidden bg-white/5 flex items-center justify-center relative">
               {p.imageUrl ? (
-                <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
+                <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
               ) : (
-                <span className="text-gray-400 font-bold text-sm">No Image</span>
+                <div className="flex flex-col items-center gap-2 text-slate-500">
+                  <span className="text-4xl">📦</span>
+                  <span className="text-xs">No Image</span>
+                </div>
               )}
+              {/* Stock badge */}
+              <span className={`absolute top-3 right-3 text-xs font-semibold px-2.5 py-1 rounded-full ${
+                p.stockQuantity > 0
+                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                  : "bg-red-500/20 text-red-400 border border-red-500/30"
+              }`}>
+                {p.stockQuantity > 0 ? "In Stock" : "Sold Out"}
+              </span>
             </div>
-            <h2 className="text-xl font-bold">{p.name}</h2>
-            <p className="text-gray-500 text-sm mt-2 line-clamp-2">{p.description}</p>
-            <p className="text-xs text-gray-400 mt-1">
-              {p.stockQuantity > 0 ? `In stock: ${p.stockQuantity}` : "Out of stock"}
-            </p>
-            <div className="flex justify-between items-end mt-6">
-              <span className="text-2xl font-black text-gray-800">${p.price}</span>
-              <AddToCartButton product={p} />
+
+            {/* Content */}
+            <div className="p-5 flex flex-col flex-1">
+              <h2 className="font-bold text-white text-lg leading-tight mb-1 line-clamp-1">{p.name}</h2>
+              {p.description && (
+                <p className="text-slate-400 text-sm line-clamp-2 mb-3">{p.description}</p>
+              )}
+              {p.sellerUsername && (
+                <p className="text-xs text-slate-500 mb-3">by <span className="text-slate-400">{p.sellerUsername}</span></p>
+              )}
+              <div className="mt-auto flex items-end justify-between gap-2 pt-3 border-t border-white/8">
+                <div>
+                  <p className="text-2xl font-black text-white">
+                    ${Number(p.price).toFixed(2)}
+                  </p>
+                  <p className="text-xs text-slate-500">{p.stockQuantity} units left</p>
+                </div>
+                <AddToCartButton product={p} />
+              </div>
             </div>
           </div>
         ))}

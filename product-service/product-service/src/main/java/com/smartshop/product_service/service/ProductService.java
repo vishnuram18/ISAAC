@@ -17,7 +17,8 @@ public class ProductService {
         this.productRepository = productRepository;
     }
 
-    public Product addProduct(Product product) {
+    public Product addProduct(Product product, String sellerUsername) {
+        product.setSellerUsername(sellerUsername);
         return productRepository.save(product);
     }
 
@@ -30,6 +31,10 @@ public class ProductService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found with id: " + id));
     }
 
+    public List<Product> getProductsBySeller(String sellerUsername) {
+        return productRepository.findBySellerUsername(sellerUsername);
+    }
+
     public void reduceStock(Long id, int quantity) {
         Product product = getProductById(id);
         if (product.getStockQuantity() < quantity) {
@@ -40,12 +45,21 @@ public class ProductService {
         productRepository.save(product);
     }
 
+    public void restoreStock(Long id, int quantity) {
+        Product product = getProductById(id);
+        product.setStockQuantity(product.getStockQuantity() + quantity);
+        productRepository.save(product);
+    }
+
     public List<Product> searchProducts(String query) {
         return productRepository.findByNameContainingIgnoreCaseOrDescriptionContainingIgnoreCase(query, query);
     }
 
-    public Product updateProduct(Long id, Product updated) {
+    public Product updateProduct(Long id, Product updated, String sellerUsername) {
         Product existing = getProductById(id);
+        if (!sellerUsername.equals(existing.getSellerUsername())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only edit your own products");
+        }
         existing.setName(updated.getName());
         existing.setDescription(updated.getDescription());
         existing.setPrice(updated.getPrice());
@@ -56,9 +70,10 @@ public class ProductService {
         return productRepository.save(existing);
     }
 
-    public void deleteProduct(Long id) {
-        if (!productRepository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found with id: " + id);
+    public void deleteProduct(Long id, String sellerUsername) {
+        Product product = getProductById(id);
+        if (!sellerUsername.equals(product.getSellerUsername())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only delete your own products");
         }
         productRepository.deleteById(id);
     }

@@ -31,4 +31,7 @@ public class Product {
     private Integer stockQuantity;
 
     private String imageUrl;
+
+    @Column
+    private String sellerUsername;
 }

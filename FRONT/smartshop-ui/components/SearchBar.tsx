@@ -10,33 +10,31 @@ export default function SearchBar({ initialQuery }: { initialQuery: string }) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = query.trim();
-    if (trimmed) {
-      router.push(`/?q=${encodeURIComponent(trimmed)}`);
-    } else {
-      router.push("/");
-    }
+    router.push(trimmed ? `/?q=${encodeURIComponent(trimmed)}` : "/");
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2 max-w-lg">
-      <input
-        type="text"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search products…"
-        className="flex-1 border rounded-full px-5 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
-      />
-      <button
-        type="submit"
-        className="bg-blue-600 text-white px-5 py-2 rounded-full hover:bg-blue-700 transition text-sm font-medium"
-      >
+    <form onSubmit={handleSubmit} className="flex gap-2 w-full max-w-xl">
+      <div className="relative flex-1">
+        <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z" />
+        </svg>
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search products…"
+          className="input-glass pl-10 pr-4 py-3 text-sm w-full"
+        />
+      </div>
+      <button type="submit" className="btn-primary px-6 py-3 text-sm">
         Search
       </button>
       {initialQuery && (
         <button
           type="button"
           onClick={() => { setQuery(""); router.push("/"); }}
-          className="text-gray-500 hover:text-gray-700 text-sm px-2"
+          className="text-slate-400 hover:text-white transition text-sm px-3 py-2 rounded-xl hover:bg-white/8"
         >
           Clear
         </button>

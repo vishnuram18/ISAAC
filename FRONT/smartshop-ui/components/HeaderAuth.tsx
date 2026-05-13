@@ -9,33 +9,44 @@ export default function HeaderAuth() {
   const router = useRouter();
   const { totalItems } = useCart();
   const [username, setUsername] = useState<string | null>(null);
+  const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {
     setUsername(localStorage.getItem("username"));
+    setRole(localStorage.getItem("role"));
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("username");
+    localStorage.removeItem("role");
     router.push("/login");
   };
 
   return (
     <div className="flex items-center gap-3">
-      <Link href="/cart" className="relative flex items-center gap-1 text-gray-600 hover:text-blue-600 transition px-2 py-1">
-        <span className="text-xl">🛒</span>
-        {totalItems > 0 && (
-          <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
-            {totalItems > 9 ? "9+" : totalItems}
-          </span>
-        )}
-      </Link>
+      {role !== "SELLER" && (
+        <Link href="/cart" className="relative flex items-center gap-1 text-gray-600 hover:text-blue-600 transition px-2 py-1">
+          <span className="text-xl">🛒</span>
+          {totalItems > 0 && (
+            <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+              {totalItems > 9 ? "9+" : totalItems}
+            </span>
+          )}
+        </Link>
+      )}
 
       {username ? (
         <>
-          <Link href="/orders" className="text-sm text-gray-600 hover:text-blue-600 transition font-medium">
-            Orders
-          </Link>
+          {role === "SELLER" ? (
+            <Link href="/seller" className="text-sm text-orange-600 hover:text-orange-700 transition font-medium">
+              🏪 My Shop
+            </Link>
+          ) : (
+            <Link href="/orders" className="text-sm text-gray-600 hover:text-blue-600 transition font-medium">
+              Orders
+            </Link>
+          )}
           <Link href="/profile" className="text-sm text-gray-600 hover:text-blue-600 transition font-medium">
             Hi, <strong>{username}</strong>
           </Link>

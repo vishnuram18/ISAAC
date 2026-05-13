@@ -18,15 +18,9 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
+    if (!token) { router.push("/login"); return; }
     fetchUserProfile()
-      .then((data: UserProfile) => {
-        setProfile(data);
-        setEmail(data.email);
-      })
+      .then((data: UserProfile) => { setProfile(data); setEmail(data.email); })
       .catch(() => setError("Failed to load profile"))
       .finally(() => setLoading(false));
   }, [router]);
@@ -40,11 +34,7 @@ export default function ProfilePage() {
       const updates: { email?: string; password?: string } = {};
       if (email && profile && email !== profile.email) updates.email = email;
       if (password) updates.password = password;
-      if (Object.keys(updates).length === 0) {
-        setMessage("No changes to save.");
-        setSaving(false);
-        return;
-      }
+      if (Object.keys(updates).length === 0) { setMessage("No changes to save."); setSaving(false); return; }
       await updateUserProfile(updates);
       setMessage("Profile updated successfully!");
       setPassword("");
@@ -55,60 +45,61 @@ export default function ProfilePage() {
     }
   };
 
+  const roleColor = (role: string) =>
+    role === "SELLER"
+      ? "bg-orange-500/15 text-orange-300 border border-orange-500/25"
+      : "bg-indigo-500/15 text-indigo-300 border border-indigo-500/25";
+
   return (
-    <div className="max-w-lg mx-auto p-8">
+    <div className="max-w-lg mx-auto px-6 py-10">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">My Profile</h1>
-        <Link href="/" className="text-blue-600 hover:underline text-sm">
-          ← Back to Shop
-        </Link>
+        <h1 className="text-3xl font-bold text-white">My Profile</h1>
+        <Link href="/" className="text-sm text-indigo-400 hover:text-indigo-300 transition">← Back to Shop</Link>
       </div>
 
-      {loading && <p className="text-gray-500">Loading profile…</p>}
-      {error && !loading && <p className="text-red-500">{error}</p>}
+      {loading && <div className="text-center py-16 text-slate-500">Loading profile…</div>}
+      {error && !loading && (
+        <div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl px-4 py-3 text-sm mb-6">{error}</div>
+      )}
 
       {profile && (
-        <div className="bg-white border rounded-2xl p-6 shadow-sm">
-          <div className="mb-6">
-            <p className="text-sm text-gray-500">Username</p>
-            <p className="text-xl font-bold">{profile.username}</p>
-            <span className="inline-block mt-1 px-3 py-0.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
-              {profile.role}
-            </span>
+        <div className="flex flex-col gap-5">
+          {/* Avatar + info card */}
+          <div className="glass-strong p-6 flex items-center gap-5">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-2xl font-black shadow-xl shadow-indigo-500/20 flex-shrink-0">
+              {profile.username.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <p className="text-xl font-bold text-white">{profile.username}</p>
+              <p className="text-slate-400 text-sm">{profile.email}</p>
+              <span className={`inline-block mt-2 px-3 py-0.5 rounded-full text-xs font-semibold ${roleColor(profile.role)}`}>
+                {profile.role}
+              </span>
+            </div>
           </div>
 
-          <form onSubmit={handleSave} className="flex flex-col gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                New Password <span className="text-gray-400 font-normal">(leave blank to keep current)</span>
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-            </div>
-            {message && <p className="text-green-600 text-sm">{message}</p>}
-            {error && !loading && <p className="text-red-500 text-sm">{error}</p>}
-            <button
-              type="submit"
-              disabled={saving}
-              className="bg-blue-600 text-white py-2 rounded-full hover:bg-blue-700 transition font-semibold disabled:opacity-60"
-            >
-              {saving ? "Saving…" : "Save Changes"}
-            </button>
-          </form>
+          {/* Edit form */}
+          <div className="glass p-6">
+            <h2 className="text-lg font-semibold text-white mb-5">Update Details</h2>
+            <form onSubmit={handleSave} className="flex flex-col gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1.5">Email</label>
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="input-glass" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                  New Password{" "}
+                  <span className="text-slate-500 font-normal">(leave blank to keep current)</span>
+                </label>
+                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="input-glass" />
+              </div>
+              {message && <p className="text-emerald-400 text-sm bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-3 py-2">{message}</p>}
+              {error && !loading && <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">{error}</p>}
+              <button type="submit" disabled={saving} className="btn-primary w-full py-3 mt-1">
+                {saving ? "Saving…" : "Save Changes"}
+              </button>
+            </form>
+          </div>
         </div>
       )}
     </div>

@@ -4,9 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { login } from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { signIn } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -18,13 +20,12 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const data = await login(username, password);
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("username", data.username);
-      router.push("/");
+      signIn(data.token, data.username, data.role);
+      router.push(data.role === "SELLER" ? "/seller" : "/");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "";
       if (msg.toLowerCase().includes("invalid") || msg.toLowerCase().includes("unauthorized")) {
-        setError("Incorrect username/email or password.");
+        setError("Incorrect username or password.");
       } else {
         setError("Could not reach the server. Is the backend running?");
       }
@@ -34,51 +35,66 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="bg-white rounded-2xl shadow-lg p-10 w-full max-w-md">
-        <h1 className="text-3xl font-extrabold text-blue-600 mb-8 text-center">Isaac SmartShop</h1>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="username">
-              Username or Email
-            </label>
-            <input
-              id="username"
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-              className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="your_username or you@example.com"
-            />
+    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md">
+
+        {/* Brand */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-xl shadow-indigo-500/30 mb-4">
+            <span className="text-white font-black text-2xl">S</span>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="password">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="••••••••"
-            />
-          </div>
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-blue-600 text-white py-2 rounded-full hover:bg-blue-700 transition font-semibold mt-2 disabled:opacity-60"
-          >
-            {loading ? "Logging in…" : "Login"}
-          </button>
-        </form>
-        <p className="text-center text-sm text-gray-500 mt-6">
+          <h1 className="text-3xl font-extrabold text-white">Welcome back</h1>
+          <p className="text-slate-400 mt-1 text-sm">Sign in to your SmartShop account</p>
+        </div>
+
+        {/* Card */}
+        <div className="glass-strong p-8">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5" htmlFor="username">
+                Username or Email
+              </label>
+              <input
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                className="input-glass"
+                placeholder="your_username"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5" htmlFor="password">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="input-glass"
+                placeholder="••••••••"
+              />
+            </div>
+
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl px-4 py-3 text-sm">
+                {error}
+              </div>
+            )}
+
+            <button type="submit" disabled={loading} className="btn-primary w-full py-3 mt-1 text-base">
+              {loading ? "Signing in…" : "Sign In"}
+            </button>
+          </form>
+        </div>
+
+        <p className="text-center text-sm text-slate-500 mt-5">
           Don&apos;t have an account?{" "}
-          <Link href="/register" className="text-blue-600 hover:underline">
-            Register
+          <Link href="/register" className="text-indigo-400 hover:text-indigo-300 transition font-medium">
+            Create one
           </Link>
         </p>
       </div>
