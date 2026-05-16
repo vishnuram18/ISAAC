@@ -1,6 +1,7 @@
 package com.smartshop.order_service.service;
 
 import com.smartshop.order_service.client.ProductClient;
+import com.smartshop.order_service.kafka.OrderEventPublisher;
 import com.smartshop.order_service.model.Order;
 import com.smartshop.order_service.model.ProductDTO;
 import com.smartshop.order_service.repository.OrderRepository;
@@ -16,13 +17,18 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final ProductClient productClient;
+    private final OrderEventPublisher orderEventPublisher;
 
-    public OrderService(OrderRepository orderRepository, ProductClient productClient) {
+    public OrderService(OrderRepository orderRepository,
+                        ProductClient productClient,
+                        OrderEventPublisher orderEventPublisher) {
         this.orderRepository = orderRepository;
         this.productClient = productClient;
+        this.orderEventPublisher = orderEventPublisher;
     }
 
     public Order placeOrder(Order order) {
+        // Synchronous: need price + stock level before accepting the order
         ProductDTO product = productClient.getProductById(order.getProductId());
 
         if (product.getStockQuantity() < order.getQuantity()) {
@@ -34,7 +40,8 @@ public class OrderService {
         order.setStatus("PLACED");
 
         Order saved = orderRepository.save(order);
-        productClient.reduceStock(order.getProductId(), order.getQuantity());
+        // Async: product-service will consume this and reduce stock
+        orderEventPublisher.publishOrderPlaced(saved.getId(), saved.getProductId(), saved.getQuantity());
         return saved;
     }
 
@@ -46,7 +53,7 @@ public class OrderService {
         }
         order.setStatus("CANCELLED");
         orderRepository.save(order);
-        productClient.restoreStock(order.getProductId(), order.getQuantity());
+        orderEventPublisher.publishStockRestore(order.getId(), order.getProductId(), order.getQuantity());
         return order;
     }
 
@@ -58,7 +65,7 @@ public class OrderService {
         }
         order.setStatus("RETURNED");
         orderRepository.save(order);
-        productClient.restoreStock(order.getProductId(), order.getQuantity());
+        orderEventPublisher.publishStockRestore(order.getId(), order.getProductId(), order.getQuantity());
         return order;
     }
 

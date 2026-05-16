@@ -24,6 +24,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorBody(400, message));
     }
 
+    // Circuit open: fallback threw this — product-service is being protected
+    @ExceptionHandler(ProductServiceUnavailableException.class)
+    public ResponseEntity<Map<String, Object>> handleProductServiceUnavailable(ProductServiceUnavailableException ex) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(errorBody(503, ex.getMessage()));
+    }
+
+    // Circuit closed but call failed: upstream returned an error HTTP status
     @ExceptionHandler(FeignException.class)
     public ResponseEntity<Map<String, Object>> handleFeign(FeignException ex) {
         int status = ex.status() > 0 ? ex.status() : 502;
