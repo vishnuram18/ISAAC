@@ -40,7 +40,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<Map<String, Object>> handleResponseStatus(ResponseStatusException ex) {
         int status = ex.getStatusCode().value();
-        return ResponseEntity.status(status).body(errorBody(status, ex.getReason()));
+        // Map.of rejects nulls, so a reason-less exception would otherwise crash this handler
+        String message = ex.getReason() != null ? ex.getReason() : HttpStatus.valueOf(status).getReasonPhrase();
+        return ResponseEntity.status(status).body(errorBody(status, message));
     }
 
     private Map<String, Object> errorBody(int status, String message) {

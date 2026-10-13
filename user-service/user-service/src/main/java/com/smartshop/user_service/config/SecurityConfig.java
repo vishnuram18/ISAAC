@@ -2,6 +2,7 @@ package com.smartshop.user_service.config;
 
 import com.smartshop.user_service.filter.JwtAuthFilter;
 import com.smartshop.user_service.util.JwtUtil;
+import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -29,6 +30,8 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable())
                 .addFilterBefore(new JwtAuthFilter(jwtUtil), UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
+                        // Let Spring's internal error dispatch through so real error statuses aren't turned into 403
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers("/api/users/register", "/api/users/login").permitAll()
                         .requestMatchers("/api/users/all").hasAuthority("ROLE_ADMIN")
                         .anyRequest().authenticated()
