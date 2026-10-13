@@ -121,7 +121,8 @@ export const addProduct = async (product: {
 
 export const updateProduct = async (
   id: number,
-  product: { name: string; description: string; price: number; stockQuantity: number; imageUrl?: string }
+  // stockAdjustment is relative (+10 restocked, -3 written off), never the absolute stock level
+  product: { name: string; description: string; price: number; stockAdjustment: number; imageUrl?: string }
 ) => {
   const res = await fetch(`${GATEWAY_URL}/products/${id}`, {
     method: "PUT",

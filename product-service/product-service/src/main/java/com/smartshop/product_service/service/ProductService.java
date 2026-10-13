@@ -1,5 +1,6 @@
 package com.smartshop.product_service.service;
 
+import com.smartshop.product_service.dto.ProductUpdateRequest;
 import com.smartshop.product_service.model.Product;
 import com.smartshop.product_service.repository.ProductRepository;
 import org.springframework.cache.annotation.CacheEvict;
@@ -8,6 +9,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
@@ -59,19 +61,28 @@ public class ProductService {
                     @CacheEvict(value = "product-search", allEntries = true)
             }
     )
-    public Product updateProduct(Long id, Product updated, String sellerUsername) {
+    @Transactional
+    public Product updateProduct(Long id, ProductUpdateRequest updated, String sellerUsername) {
         Product existing = getProductById(id);
         if (!sellerUsername.equals(existing.getSellerUsername())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only edit your own products");
         }
-        existing.setName(updated.getName());
-        existing.setDescription(updated.getDescription());
-        existing.setPrice(updated.getPrice());
-        existing.setStockQuantity(updated.getStockQuantity());
-        if (updated.getImageUrl() != null) {
-            existing.setImageUrl(updated.getImageUrl());
+        existing.setName(updated.name());
+        existing.setDescription(updated.description());
+        existing.setPrice(updated.price());
+        if (updated.imageUrl() != null) {
+            existing.setImageUrl(updated.imageUrl());
         }
-        return productRepository.save(existing);
+        // Flush before the bulk stock update, which clears the persistence context
+        productRepository.saveAndFlush(existing);
+
+        // Setting the absolute value from the form would undo any sales made since the page loaded
+        int delta = updated.stockAdjustment();
+        if (delta != 0 && productRepository.adjustStock(id, delta) == 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Stock can't go below zero: units were sold since you opened this product. Reload and try again.");
+        }
+        return productRepository.findById(id).orElseThrow();
     }
 
     @Caching(evict = {

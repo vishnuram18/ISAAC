@@ -1,5 +1,6 @@
 package com.smartshop.product_service.controller;
 
+import com.smartshop.product_service.dto.ProductUpdateRequest;
 import com.smartshop.product_service.model.Product;
 import com.smartshop.product_service.service.ProductService;
 import jakarta.validation.Valid;
@@ -45,7 +46,7 @@ public class ProductController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Product> updateProduct(@PathVariable Long id, @Valid @RequestBody Product product, Authentication auth) {
+    public ResponseEntity<Product> updateProduct(@PathVariable Long id, @Valid @RequestBody ProductUpdateRequest product, Authentication auth) {
         return ResponseEntity.ok(productService.updateProduct(id, product, auth.getName()));
     }
 

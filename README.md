@@ -257,6 +257,9 @@ Placing an order is synchronous (Feign): order-service fetches the price, then a
 ### 2a. No overselling under concurrent orders
 Stock is reserved with a single conditional statement — `UPDATE products SET stock_quantity = stock_quantity - :q WHERE id = :id AND stock_quantity >= :q` — instead of read → check → write. The database row lock serialises competing updates, so when two customers race for the last unit exactly one gets a row updated and the other gets a 409 "not enough stock". Restores use the same atomic `stock_quantity + :q` form so a concurrent cancel and order can't overwrite each other. `ProductStockConcurrencyTest` fires 20 simultaneous buyers at one unit and asserts exactly one succeeds. Cancel/return use the same idea for the order status (`UPDATE orders SET status = 'CANCELLED' WHERE id = :id AND status = 'PLACED'`), so a double-clicked Cancel restores stock only once.
 
+### 2b. Seller edits never undo sales
+The edit form sends a relative `stockAdjustment` (what the seller typed minus what the page loaded), applied with `UPDATE products SET stock_quantity = stock_quantity + :delta WHERE id = :id AND stock_quantity + :delta >= 0`. Sending the absolute value would put back on sale any units bought while the form was open. `@DynamicUpdate` on `Product` keeps the name/price save from writing a stale stock value. Optimistic locking (`@Version`) was rejected because every sale would invalidate an open edit form, so sellers of busy products would keep getting 409s. The trade-off: a seller can't force an exact count (e.g. after a stocktake); if units sell while they type, the result is lower by that many. `ProductUpdateStockTest` races a restock against concurrent buyers.
+
 ### 3. Redis caching at the service layer
 Caching is applied in `ProductService`, not the controller, so it covers all callers including the Kafka consumer. `@CacheEvict` on every write ensures the cache never serves stale data. JSON serialization means cached values are human-readable in `redis-cli monitor`.
 
@@ -299,7 +302,7 @@ The `JwtAuthFilter` parses the role claim from the token and programmatically se
 | GET | `/api/products/search?q=` | None | Search products (cached) |
 | GET | `/api/products/my` | ROLE_SELLER | Get seller's own products (cached) |
 | POST | `/api/products/add` | ROLE_SELLER | Create product |
-| PUT | `/api/products/{id}` | ROLE_SELLER + owner | Update product |
+| PUT | `/api/products/{id}` | ROLE_SELLER + owner | Update product details; stock changes by a relative `stockAdjustment` (e.g. `10`, `-3`) |
 | DELETE | `/api/products/{id}` | ROLE_SELLER + owner | Delete product |
 | PUT | `/api/products/{id}/reduce-stock` | Internal only (`X-Internal-Api-Key`, blocked at gateway) | Atomically reserve stock when an order is placed |
 

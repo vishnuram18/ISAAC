@@ -9,6 +9,8 @@ export default function EditProductPage() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
   const [form, setForm] = useState({ name: "", description: "", price: "", stockQuantity: "", imageUrl: "" });
+  // Stock when the page loaded: we send the change relative to it, so sales made meanwhile aren't undone
+  const [loadedStock, setLoadedStock] = useState(0);
   const [loadingData, setLoadingData] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -26,6 +28,7 @@ export default function EditProductPage() {
           stockQuantity: String(product.stockQuantity),
           imageUrl: product.imageUrl ?? "",
         });
+        setLoadedStock(product.stockQuantity);
       })
       .catch(() => setError("Failed to load product."))
       .finally(() => setLoadingData(false));
@@ -44,7 +47,7 @@ export default function EditProductPage() {
         name: form.name.trim(),
         description: form.description.trim(),
         price: parseFloat(form.price),
-        stockQuantity: parseInt(form.stockQuantity),
+        stockAdjustment: parseInt(form.stockQuantity) - loadedStock,
         imageUrl: form.imageUrl.trim() || undefined,
       });
       router.push("/seller");
@@ -87,6 +90,7 @@ export default function EditProductPage() {
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-1.5">Stock <span className="text-red-400">*</span></label>
               <input name="stockQuantity" type="number" min="0" value={form.stockQuantity} onChange={handleChange} required className="input-glass" />
+              <p className="text-xs text-slate-500 mt-1">Your change is added to the live stock, so orders placed meanwhile are kept.</p>
             </div>
           </div>
           <div>
