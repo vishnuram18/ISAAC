@@ -9,9 +9,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 @Service
 public class UserService {
+
+    private static final Set<String> SELF_SERVICE_ROLES = Set.of("USER", "SELLER");
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -27,11 +31,23 @@ public class UserService {
         if (userRepository.findByUsername(user.getUsername()).isPresent()) {
             throw new IllegalArgumentException("Username already taken");
         }
+        // Never trust a client-supplied id: save() would merge into that existing row.
+        user.setId(null);
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        if (user.getRole() == null || user.getRole().isBlank()) {
-            user.setRole("USER");
-        }
+        user.setRole(selfServiceRole(user.getRole()));
         return userRepository.save(user);
+    }
+
+    // Only USER and SELLER may be chosen at sign-up; ADMIN must never be self-assigned.
+    private static String selfServiceRole(String requested) {
+        if (requested == null || requested.isBlank()) {
+            return "USER";
+        }
+        String role = requested.trim().toUpperCase(Locale.ROOT);
+        if (!SELF_SERVICE_ROLES.contains(role)) {
+            throw new IllegalArgumentException("Role must be USER or SELLER");
+        }
+        return role;
     }
 
     public LoginResponse login(LoginRequest request) {
