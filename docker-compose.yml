@@ -41,7 +41,6 @@ services:
   # ──────────────────────────────────────────
   # MESSAGE BROKER
   # Kafka (KRaft mode — no Zookeeper needed).
-  # order-service → order-placed  → product-service (reduce stock)
   # order-service → stock-restore → product-service (restore stock)
   # PLAINTEXT://kafka:9092  — internal container-to-container
   # EXTERNAL://localhost:9094 — host access for local dev

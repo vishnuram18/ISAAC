@@ -93,13 +93,13 @@ public class ProductService {
             @CacheEvict(value = "products", allEntries = true)
     })
     public void reduceStock(Long id, int quantity) {
-        Product product = getProductById(id);
-        if (product.getStockQuantity() < quantity) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Insufficient stock. Available: " + product.getStockQuantity());
+        requirePositive(quantity);
+        if (productRepository.decrementStock(id, quantity) == 0) {
+            if (!productRepository.existsById(id)) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found with id: " + id);
+            }
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Insufficient stock for product " + id);
         }
-        product.setStockQuantity(product.getStockQuantity() - quantity);
-        productRepository.save(product);
     }
 
     @Caching(evict = {
@@ -107,8 +107,15 @@ public class ProductService {
             @CacheEvict(value = "products", allEntries = true)
     })
     public void restoreStock(Long id, int quantity) {
-        Product product = getProductById(id);
-        product.setStockQuantity(product.getStockQuantity() + quantity);
-        productRepository.save(product);
+        requirePositive(quantity);
+        if (productRepository.incrementStock(id, quantity) == 0) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found with id: " + id);
+        }
+    }
+
+    private void requirePositive(int quantity) {
+        if (quantity <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Quantity must be positive");
+        }
     }
 }

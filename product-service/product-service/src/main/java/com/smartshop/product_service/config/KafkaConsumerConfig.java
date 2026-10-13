@@ -1,6 +1,5 @@
 package com.smartshop.product_service.config;
 
-import com.smartshop.product_service.event.OrderPlacedEvent;
 import com.smartshop.product_service.event.StockRestoreEvent;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -37,14 +36,6 @@ public class KafkaConsumerConfig {
                 new StringDeserializer(),
                 deserializer
         );
-    }
-
-    @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, OrderPlacedEvent> orderPlacedListenerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, OrderPlacedEvent> factory =
-                new ConcurrentKafkaListenerContainerFactory<>();
-        factory.setConsumerFactory(consumerFactory(OrderPlacedEvent.class));
-        return factory;
     }
 
     @Bean
