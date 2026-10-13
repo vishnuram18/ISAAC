@@ -80,7 +80,7 @@ public class ProductService {
         int delta = updated.stockAdjustment();
         if (delta != 0 && productRepository.adjustStock(id, delta) == 0) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Stock can't go below zero: units were sold since you opened this product. Reload and try again.");
+                    "Not enough stock to remove " + -delta + " units (some may have sold since you opened this product). Reload and try again.");
         }
         return productRepository.findById(id).orElseThrow();
     }
