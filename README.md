@@ -34,8 +34,8 @@ A production-style microservices application built with **Java Spring Boot**, **
   ┌─────────────────┐   ┌──────────────────┐   ┌──────────────────────┐
   │ eureka   :8761  │   │  redis    :6379  │   │  kafka       :9092   │
   │ Service Reg.    │   │  L1 Cache        │   │  Topics:             │
-  └─────────────────┘   └──────────────────┘   │  · order-placed      │
-                                                │  · stock-restore     │
+  └─────────────────┘   └──────────────────┘   │  · stock-restore     │
+                                                │                      │
   ┌──────────────────────────────────────────── └──────────────────────┘
   │  zipkin  :9411  — Distributed Tracing (all services report here)   │
   └────────────────────────────────────────────────────────────────────┘
@@ -84,15 +84,15 @@ All services run in an isolated Docker Compose network. The Next.js server-side 
 
 - Full product CRUD with seller ownership enforcement (server-side 403 if a seller touches another's product)
 - `sellerUsername` stamped on product creation
-- Stock management — stock decremented on order placed event, restored on cancel/return event
+- Stock management — stock reserved atomically when an order is placed (no overselling under concurrent orders), restored on cancel/return event
 - `ROLE_SELLER` required for `POST`, `PUT`, `DELETE` on `/api/products`
 
 ### 📦 Order Service
 
-- Place orders: synchronous Feign call to get price + validate stock, then save order and publish `order-placed` Kafka event
+- Place orders: synchronous Feign calls to get the price and atomically reserve stock, then save the order (409 if stock ran out)
 - Cancel order: `PLACED → CANCELLED` — publishes `stock-restore` Kafka event
 - Return order: `DELIVERED → RETURNED` — publishes `stock-restore` Kafka event
-- Stock mutation is fully decoupled from the HTTP response via Kafka
+- Stock restores are decoupled from the HTTP response via Kafka
 
 ### ⚡ Redis Caching (product-service)
 
@@ -105,7 +105,6 @@ All services run in an isolated Docker Compose network. The Next.js server-side 
 
 | Topic | Producer | Consumer | Action |
 |-------|----------|----------|--------|
-| `order-placed` | order-service | product-service | Reduce stock |
 | `stock-restore` | order-service | product-service | Restore stock (cancel / return) |
 
 - KRaft mode — no Zookeeper needed
@@ -253,24 +252,30 @@ minikube tunnel
 Each microservice owns its own MySQL database (`smartshop_user`, `smartshop_product`, `smartshop_order`). No service queries another's DB directly — all cross-service data goes through REST or Kafka events.
 
 ### 2. Hybrid sync/async communication
-`getProductById` stays synchronous (Feign) because the price and current stock level are needed *before* accepting the order — you can't compute a total or validate availability without them. Stock *mutation* (reduce / restore) is async via Kafka. This keeps the happy path fast while decoupling the write side.
+Placing an order is synchronous (Feign): order-service fetches the price, then asks product-service to reserve the stock, and only saves the order once the reservation succeeds. Restoring stock on cancel/return is async via Kafka, because adding stock back can never fail for lack of stock and the customer doesn't need to wait for it.
+
+### 2a. No overselling under concurrent orders
+Stock is reserved with a single conditional statement — `UPDATE products SET stock_quantity = stock_quantity - :q WHERE id = :id AND stock_quantity >= :q` — instead of read → check → write. The database row lock serialises competing updates, so when two customers race for the last unit exactly one gets a row updated and the other gets a 409 "not enough stock". Restores use the same atomic `stock_quantity + :q` form so a concurrent cancel and order can't overwrite each other. `ProductStockConcurrencyTest` fires 20 simultaneous buyers at one unit and asserts exactly one succeeds. Cancel/return use the same idea for the order status (`UPDATE orders SET status = 'CANCELLED' WHERE id = :id AND status = 'PLACED'`), so a double-clicked Cancel restores stock only once.
 
 ### 3. Redis caching at the service layer
 Caching is applied in `ProductService`, not the controller, so it covers all callers including the Kafka consumer. `@CacheEvict` on every write ensures the cache never serves stale data. JSON serialization means cached values are human-readable in `redis-cli monitor`.
 
 ### 4. Circuit breaker only on the sync Feign call
-Resilience4j wraps `getProductById` — the one remaining synchronous dependency. The circuit breaker fails fast with 503 when product-service is down, preventing thread exhaustion in order-service. Stock events (reduce/restore) are no longer Feign calls, so they don't need a circuit breaker — if product-service is down, the Kafka event waits and is consumed on recovery.
+Resilience4j wraps the synchronous Feign calls (`getProductById`, `reserveStock`). The circuit breaker fails fast with 503 when product-service is down, preventing thread exhaustion in order-service. 4xx answers such as "insufficient stock" are passed through to the client and ignored by the breaker, since they come from a healthy service. Stock restores are Kafka events, so if product-service is down the event waits and is consumed on recovery.
 
 ### 5. Kafka consumer error handling
-Consumers catch exceptions and log them rather than letting them propagate. An unhandled exception in a Kafka consumer causes the message to be retried, which is correct for transient errors but will loop forever on "product not found" or "insufficient stock." Catching and discarding is safe here; in production these would route to a dead-letter topic.
+Consumers catch exceptions and log them rather than letting them propagate. An unhandled exception in a Kafka consumer causes the message to be retried, which is correct for transient errors but will loop forever on "product not found." Catching and discarding is safe here; in production these would route to a dead-letter topic.
 
-### 6. Internal vs external URL resolution
+### 6. Internal-only endpoints
+`reduce-stock` exists only for order-service. The gateway answers 404 for it and strips any `X-Internal-Api-Key` header that clients send. product-service also requires that header with the shared `INTERNAL_API_KEY` secret, since a user JWT alone would let any customer change any product's stock, and the service port can be reached without going through the gateway. Stock restores have no HTTP endpoint; they only arrive via Kafka.
+
+### 7. Internal vs external URL resolution
 Next.js server components use `GATEWAY_INTERNAL_URL=http://api-gateway:8080/api` (Docker internal hostname). Browser-side calls use `http://localhost:8080/api`. This separation prevents the common Docker networking pitfall where server-side fetches to localhost fail inside a container.
 
-### 7. JWT role claim → Spring Security authority
+### 8. JWT role claim → Spring Security authority
 The `JwtAuthFilter` parses the role claim from the token and programmatically sets `ROLE_SELLER` or `ROLE_USER` as the granted authority. This avoids a second DB lookup on every request.
 
-### 8. Zipkin sampling at 100% in development
+### 9. Zipkin sampling at 100% in development
 `management.tracing.sampling.probability=1.0` traces every request. This is intentional for development — you can see every trace without triggering the problem multiple times. Reduce to `0.1` in production to limit the network overhead of shipping spans.
 
 ---
@@ -296,8 +301,7 @@ The `JwtAuthFilter` parses the role claim from the token and programmatically se
 | POST | `/api/products/add` | ROLE_SELLER | Create product |
 | PUT | `/api/products/{id}` | ROLE_SELLER + owner | Update product |
 | DELETE | `/api/products/{id}` | ROLE_SELLER + owner | Delete product |
-| PUT | `/api/products/{id}/reduce-stock` | Internal (Kafka consumer) | Reduce stock on order placed |
-| PUT | `/api/products/{id}/restore-stock` | Internal (Kafka consumer) | Restore stock on cancel/return |
+| PUT | `/api/products/{id}/reduce-stock` | Internal only (`X-Internal-Api-Key`, blocked at gateway) | Atomically reserve stock when an order is placed |
 
 ### Order Service :8083
 

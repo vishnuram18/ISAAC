@@ -4,10 +4,16 @@ import com.smartshop.order_service.model.ProductDTO;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
-@FeignClient(name = "product-service", fallback = ProductClientFallback.class)
+@FeignClient(name = "product-service", fallbackFactory = ProductClientFallbackFactory.class)
 public interface ProductClient {
 
     @GetMapping("/api/products/{id}")
     ProductDTO getProductById(@PathVariable("id") Long id);
+
+    // Atomically decrements stock; responds 409 if not enough stock is left
+    @PutMapping("/api/products/{id}/reduce-stock")
+    void reserveStock(@PathVariable("id") Long id, @RequestParam("quantity") int quantity);
 }

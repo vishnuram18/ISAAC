@@ -1,6 +1,5 @@
 package com.smartshop.product_service.kafka;
 
-import com.smartshop.product_service.event.OrderPlacedEvent;
 import com.smartshop.product_service.event.StockRestoreEvent;
 import com.smartshop.product_service.service.ProductService;
 import org.slf4j.Logger;
@@ -19,19 +18,8 @@ public class StockEventConsumer {
         this.productService = productService;
     }
 
-    @KafkaListener(topics = "order-placed", groupId = "product-service",
-            containerFactory = "orderPlacedListenerFactory")
-    public void handleOrderPlaced(OrderPlacedEvent event) {
-        try {
-            productService.reduceStock(event.getProductId(), event.getQuantity());
-            log.info("Stock reduced for order {}: product={} qty={}", event.getOrderId(), event.getProductId(), event.getQuantity());
-        } catch (Exception e) {
-            // Log and discard — retrying an insufficient-stock error will never succeed.
-            // Production: route to a dead-letter topic for manual review.
-            log.error("Failed to reduce stock for order {}: {}", event.getOrderId(), e.getMessage());
-        }
-    }
-
+    // Stock is reserved synchronously (atomic DB update) when an order is placed,
+    // so the only async stock operation left is restoring it on cancel/return.
     @KafkaListener(topics = "stock-restore", groupId = "product-service",
             containerFactory = "stockRestoreListenerFactory")
     public void handleStockRestore(StockRestoreEvent event) {

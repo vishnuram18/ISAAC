@@ -9,11 +9,6 @@ import org.springframework.kafka.config.TopicBuilder;
 public class KafkaTopicConfig {
 
     @Bean
-    public NewTopic orderPlacedTopic() {
-        return TopicBuilder.name("order-placed").partitions(1).replicas(1).build();
-    }
-
-    @Bean
     public NewTopic stockRestoreTopic() {
         return TopicBuilder.name("stock-restore").partitions(1).replicas(1).build();
     }

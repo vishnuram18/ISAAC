@@ -55,15 +55,10 @@ public class ProductController {
         return ResponseEntity.noContent().build();
     }
 
+    // Internal: called only by order-service (see SecurityConfig). Stock restores arrive via Kafka.
     @PutMapping("/{id}/reduce-stock")
     public ResponseEntity<Void> reduceStock(@PathVariable Long id, @RequestParam int quantity) {
         productService.reduceStock(id, quantity);
-        return ResponseEntity.noContent().build();
-    }
-
-    @PutMapping("/{id}/restore-stock")
-    public ResponseEntity<Void> restoreStock(@PathVariable Long id, @RequestParam int quantity) {
-        productService.restoreStock(id, quantity);
         return ResponseEntity.noContent().build();
     }
 }

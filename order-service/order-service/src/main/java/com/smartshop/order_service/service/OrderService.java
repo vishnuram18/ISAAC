@@ -5,6 +5,7 @@ import com.smartshop.order_service.kafka.OrderEventPublisher;
 import com.smartshop.order_service.model.Order;
 import com.smartshop.order_service.model.ProductDTO;
 import com.smartshop.order_service.repository.OrderRepository;
+import feign.FeignException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -28,43 +29,53 @@ public class OrderService {
     }
 
     public Order placeOrder(Order order) {
-        // Synchronous: need price + stock level before accepting the order
-        ProductDTO product = productClient.getProductById(order.getProductId());
+        ProductDTO product;
+        try {
+            product = productClient.getProductById(order.getProductId());
+        } catch (FeignException.NotFound e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found");
+        }
 
-        if (product.getStockQuantity() < order.getQuantity()) {
+        // Reserve stock before accepting the order. product-service decrements it with a single
+        // conditional UPDATE, so when two customers race for the last unit only one succeeds.
+        // (A read-then-check here would let both pass and oversell.)
+        try {
+            productClient.reserveStock(order.getProductId(), order.getQuantity());
+        } catch (FeignException.Conflict e) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Insufficient stock. Available: " + product.getStockQuantity());
+                    "Sorry, there is not enough stock left for " + product.getName());
+        } catch (FeignException.NotFound e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found");
         }
 
         order.setTotalPrice(product.getPrice().multiply(BigDecimal.valueOf(order.getQuantity())));
         order.setStatus("PLACED");
 
-        Order saved = orderRepository.save(order);
-        // Async: product-service will consume this and reduce stock
-        orderEventPublisher.publishOrderPlaced(saved.getId(), saved.getProductId(), saved.getQuantity());
-        return saved;
+        try {
+            return orderRepository.save(order);
+        } catch (RuntimeException e) {
+            // Order could not be recorded — give the reserved units back
+            orderEventPublisher.publishStockRestore(null, order.getProductId(), order.getQuantity());
+            throw e;
+        }
     }
 
     public Order cancelOrder(Long id, String username) {
-        Order order = getOrderById(id, username);
-        if (!"PLACED".equals(order.getStatus())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Only orders with status PLACED can be cancelled");
-        }
-        order.setStatus("CANCELLED");
-        orderRepository.save(order);
-        orderEventPublisher.publishStockRestore(order.getId(), order.getProductId(), order.getQuantity());
-        return order;
+        return changeStatusAndRestoreStock(id, username, "PLACED", "CANCELLED",
+                "Only orders with status PLACED can be cancelled");
     }
 
     public Order returnOrder(Long id, String username) {
+        return changeStatusAndRestoreStock(id, username, "DELIVERED", "RETURNED",
+                "Only orders with status DELIVERED can be returned");
+    }
+
+    private Order changeStatusAndRestoreStock(Long id, String username, String from, String to, String conflictMessage) {
         Order order = getOrderById(id, username);
-        if (!"DELIVERED".equals(order.getStatus())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Only orders with status DELIVERED can be returned");
+        if (orderRepository.transitionStatus(id, from, to) == 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, conflictMessage);
         }
-        order.setStatus("RETURNED");
-        orderRepository.save(order);
+        order.setStatus(to);
         orderEventPublisher.publishStockRestore(order.getId(), order.getProductId(), order.getQuantity());
         return order;
     }
