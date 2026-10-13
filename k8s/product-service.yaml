@@ -34,6 +34,11 @@ spec:
                 secretKeyRef:
                   name: smartshop-secrets
                   key: jwt-secret
+            - name: INTERNAL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: smartshop-secrets
+                  key: internal-api-key
             - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
               value: http://eureka-server:8761/eureka/
             - name: EUREKA_INSTANCE_PREFER_IP_ADDRESS

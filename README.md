@@ -266,13 +266,16 @@ Resilience4j wraps the synchronous Feign calls (`getProductById`, `reserveStock`
 ### 5. Kafka consumer error handling
 Consumers catch exceptions and log them rather than letting them propagate. An unhandled exception in a Kafka consumer causes the message to be retried, which is correct for transient errors but will loop forever on "product not found." Catching and discarding is safe here; in production these would route to a dead-letter topic.
 
-### 6. Internal vs external URL resolution
+### 6. Internal-only endpoints
+`reduce-stock` exists only for order-service. The gateway answers 404 for it and strips any `X-Internal-Api-Key` header that clients send. product-service also requires that header with the shared `INTERNAL_API_KEY` secret, since a user JWT alone would let any customer change any product's stock, and the service port can be reached without going through the gateway. Stock restores have no HTTP endpoint; they only arrive via Kafka.
+
+### 7. Internal vs external URL resolution
 Next.js server components use `GATEWAY_INTERNAL_URL=http://api-gateway:8080/api` (Docker internal hostname). Browser-side calls use `http://localhost:8080/api`. This separation prevents the common Docker networking pitfall where server-side fetches to localhost fail inside a container.
 
-### 7. JWT role claim → Spring Security authority
+### 8. JWT role claim → Spring Security authority
 The `JwtAuthFilter` parses the role claim from the token and programmatically sets `ROLE_SELLER` or `ROLE_USER` as the granted authority. This avoids a second DB lookup on every request.
 
-### 8. Zipkin sampling at 100% in development
+### 9. Zipkin sampling at 100% in development
 `management.tracing.sampling.probability=1.0` traces every request. This is intentional for development — you can see every trace without triggering the problem multiple times. Reduce to `0.1` in production to limit the network overhead of shipping spans.
 
 ---
@@ -298,8 +301,7 @@ The `JwtAuthFilter` parses the role claim from the token and programmatically se
 | POST | `/api/products/add` | ROLE_SELLER | Create product |
 | PUT | `/api/products/{id}` | ROLE_SELLER + owner | Update product |
 | DELETE | `/api/products/{id}` | ROLE_SELLER + owner | Delete product |
-| PUT | `/api/products/{id}/reduce-stock` | Internal (order-service Feign) | Atomically reserve stock when an order is placed |
-| PUT | `/api/products/{id}/restore-stock` | Internal | Restore stock (cancel/return normally goes via Kafka) |
+| PUT | `/api/products/{id}/reduce-stock` | Internal only (`X-Internal-Api-Key`, blocked at gateway) | Atomically reserve stock when an order is placed |
 
 ### Order Service :8083
 
